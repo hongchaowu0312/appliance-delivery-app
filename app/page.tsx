@@ -49,7 +49,7 @@ const texts = {
     address: "Address",
     appliance: "Appliance",
     date: "Date",
-    driver: "Driver",
+    driver: "Delivery Time",
     notes: "Notes",
     install: "Install",
     paid: "Paid",
@@ -67,6 +67,8 @@ const texts = {
     open: "Open",
     done: "Done",
     copied: "Address copied",
+    yes: "Yes",
+    no: "No",
   },
   zh: {
     appTitle: "家电送货管理",
@@ -81,7 +83,7 @@ const texts = {
     address: "地址",
     appliance: "家电",
     date: "日期",
-    driver: "司机",
+    driver: "送货时间段",
     notes: "备注",
     install: "安装",
     paid: "已付款",
@@ -99,6 +101,8 @@ const texts = {
     open: "进行中",
     done: "已完成",
     copied: "地址已复制",
+    yes: "是",
+    no: "否",
   },
   es: {
     appTitle: "Administrador de Entregas",
@@ -113,7 +117,7 @@ const texts = {
     address: "Dirección",
     appliance: "Electrodoméstico",
     date: "Fecha",
-    driver: "Chofer",
+    driver: "Horario de Entrega",
     notes: "Notas",
     install: "Instalación",
     paid: "Pagado",
@@ -131,6 +135,8 @@ const texts = {
     open: "Abierto",
     done: "Hecho",
     copied: "Dirección copiada",
+    yes: "Sí",
+    no: "No",
   },
 };
 
@@ -153,6 +159,10 @@ function emptyForm(date: string): FormState {
     driver: "",
     notes: "",
   };
+}
+
+function toBoolean(value: unknown): boolean {
+  return value === true || value === "true" || value === 1 || value === "1";
 }
 
 export default function Home() {
@@ -182,7 +192,14 @@ export default function Home() {
       return;
     }
 
-    setDeliveries((data as Delivery[]) || []);
+    const normalized = ((data as any[]) || []).map((item) => ({
+      ...item,
+      install: toBoolean(item.install),
+      paid: toBoolean(item.paid),
+      completed: toBoolean(item.completed),
+    }));
+
+    setDeliveries(normalized as Delivery[]);
   }
 
   useEffect(() => {
@@ -270,8 +287,8 @@ export default function Home() {
           address: form.address,
           appliance: form.appliance,
           delivery_date: form.delivery_date,
-          install: form.install,
-          paid: form.paid,
+          install: form.install === true,
+          paid: form.paid === true,
           driver: form.driver,
           notes: form.notes,
         })
@@ -295,8 +312,8 @@ export default function Home() {
           address: form.address,
           appliance: form.appliance,
           delivery_date: form.delivery_date,
-          install: form.install,
-          paid: form.paid,
+          install: form.install === true,
+          paid: form.paid === true,
           driver: form.driver,
           notes: form.notes,
           sort_order: nextSortOrder,
@@ -326,8 +343,8 @@ export default function Home() {
       address: delivery.address || "",
       appliance: delivery.appliance || "",
       delivery_date: delivery.delivery_date || selectedDateString,
-      install: !!delivery.install,
-      paid: !!delivery.paid,
+      install: toBoolean(delivery.install),
+      paid: toBoolean(delivery.paid),
       driver: delivery.driver || "",
       notes: delivery.notes || "",
     });
@@ -507,7 +524,9 @@ export default function Home() {
             marginBottom: 16,
           }}
         >
-          <h2 style={{ marginTop: 0, marginBottom: 16 }}>{editingId ? t.updateDelivery : t.addDelivery}</h2>
+          <h2 style={{ marginTop: 0, marginBottom: 16 }}>
+            {editingId ? t.updateDelivery : t.addDelivery}
+          </h2>
 
           <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
             <input
@@ -620,10 +639,10 @@ export default function Home() {
                     <strong>{t.date}:</strong> {delivery.delivery_date}
                   </div>
                   <div>
-                    <strong>{t.install}:</strong> {delivery.install ? "Yes" : "No"}
+                    <strong>{t.install}:</strong> {delivery.install ? t.yes : t.no}
                   </div>
                   <div>
-                    <strong>{t.paid}:</strong> {delivery.paid ? "Yes" : "No"}
+                    <strong>{t.paid}:</strong> {delivery.paid ? t.yes : t.no}
                   </div>
                   <div>
                     <strong>{t.driver}:</strong> {delivery.driver || "-"}
