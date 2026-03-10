@@ -14,50 +14,17 @@ type Delivery = {
   delivery_date: string;
   install: boolean;
   paid: boolean;
-  driver: string;
+  driver: string; // 继续复用这个字段，前端显示为“送货时间段”
   notes: string;
   completed?: boolean;
 };
 
-type Language = "中文" | "English" | "Español";
+type Language = "English" | "中文" | "Español";
 
 const textMap = {
-  中文: {
-    title: "送货管理",
-    addNew: "新增订单",
-    updateOrder: "修改订单",
-    customerName: "客户姓名",
-    phone: "电话",
-    address: "地址",
-    appliance: "产品",
-    deliveryDate: "送货日期",
-    deliveryTime: "送货时间段",
-    install: "需要安装",
-    paid: "已付款",
-    notes: "备注",
-    save: "保存",
-    update: "更新",
-    cancel: "取消",
-    edit: "编辑",
-    delete: "删除",
-    markDone: "完成",
-    undoDone: "取消完成",
-    todayOrders: "今天订单",
-    upcomingOrders: "待送订单",
-    allOrders: "所有订单",
-    showAllOrders: "查看所有订单",
-    hideAllOrders: "隐藏所有订单",
-    noOrders: "没有订单",
-    yes: "是",
-    no: "否",
-    language: "语言",
-    selectedDateOrders: "当天订单",
-    confirmDelete: "确定要删除这个订单吗？",
-  },
   English: {
     title: "Delivery Manager",
     addNew: "Add New Order",
-    updateOrder: "Update Order",
     customerName: "Customer Name",
     phone: "Phone",
     address: "Address",
@@ -82,14 +49,42 @@ const textMap = {
     noOrders: "No orders",
     yes: "Yes",
     no: "No",
-    language: "Language",
-    selectedDateOrders: "Orders on Selected Date",
     confirmDelete: "Are you sure you want to delete this order?",
+    language: "Language",
+  },
+  中文: {
+    title: "送货管理",
+    addNew: "新增订单",
+    customerName: "客户姓名",
+    phone: "电话",
+    address: "地址",
+    appliance: "产品",
+    deliveryDate: "送货日期",
+    deliveryTime: "送货时间段",
+    install: "需要安装",
+    paid: "已付款",
+    notes: "备注",
+    save: "保存",
+    update: "更新",
+    cancel: "取消",
+    edit: "编辑",
+    delete: "删除",
+    markDone: "完成",
+    undoDone: "取消完成",
+    todayOrders: "今天订单",
+    upcomingOrders: "待送订单",
+    allOrders: "所有订单",
+    showAllOrders: "查看所有订单",
+    hideAllOrders: "隐藏所有订单",
+    noOrders: "没有订单",
+    yes: "是",
+    no: "否",
+    confirmDelete: "确定要删除这个订单吗？",
+    language: "语言",
   },
   Español: {
     title: "Gestor de Entregas",
     addNew: "Agregar Pedido",
-    updateOrder: "Actualizar Pedido",
     customerName: "Nombre del Cliente",
     phone: "Teléfono",
     address: "Dirección",
@@ -104,7 +99,7 @@ const textMap = {
     cancel: "Cancelar",
     edit: "Editar",
     delete: "Eliminar",
-    markDone: "Completar",
+    markDone: "Completado",
     undoDone: "Deshacer",
     todayOrders: "Pedidos de Hoy",
     upcomingOrders: "Pedidos Próximos",
@@ -114,23 +109,22 @@ const textMap = {
     noOrders: "No hay pedidos",
     yes: "Sí",
     no: "No",
-    language: "Idioma",
-    selectedDateOrders: "Pedidos de la Fecha",
     confirmDelete: "¿Seguro que quieres eliminar este pedido?",
+    language: "Idioma",
   },
 };
+
+function getCalendarLocale(language: Language) {
+  if (language === "中文") return "zh-CN";
+  if (language === "Español") return "es-ES";
+  return "en-US";
+}
 
 function formatDate(date: Date) {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
   const day = `${date.getDate()}`.padStart(2, "0");
   return `${year}-${month}-${day}`;
-}
-
-function getCalendarLocale(language: Language) {
-  if (language === "中文") return "zh-CN";
-  if (language === "Español") return "es-ES";
-  return "en-US";
 }
 
 export default function Home() {
@@ -183,14 +177,8 @@ export default function Home() {
     fetchDeliveries();
   }, []);
 
-  const todayStr = formatDate(new Date());
   const selectedDateStr = formatDate(selectedDate);
-
-  const todayOrders = useMemo(() => {
-    return deliveries.filter(
-      (d) => d.delivery_date === todayStr && d.completed !== true
-    );
-  }, [deliveries, todayStr]);
+  const todayStr = formatDate(new Date());
 
   const selectedDayOrders = useMemo(() => {
     return deliveries.filter(
@@ -200,7 +188,7 @@ export default function Home() {
 
   const upcomingOrders = useMemo(() => {
     return deliveries.filter(
-      (d) => d.delivery_date >= todayStr && d.completed !== true
+      (d) => d.delivery_date > todayStr && d.completed !== true
     );
   }, [deliveries, todayStr]);
 
@@ -211,22 +199,6 @@ export default function Home() {
       return b.id - a.id;
     });
   }, [deliveries]);
-
-  function resetForm() {
-    setForm({
-      customer_name: "",
-      phone: "",
-      address: "",
-      appliance: "",
-      delivery_date: formatDate(new Date()),
-      install: false,
-      paid: false,
-      driver: "",
-      notes: "",
-      completed: false,
-    });
-    setEditingId(null);
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -239,12 +211,12 @@ export default function Home() {
       delivery_date: form.delivery_date,
       install: form.install === true,
       paid: form.paid === true,
-      driver: form.driver.trim(),
+      driver: form.driver.trim(), // 这里保存“送货时间段”
       notes: form.notes.trim(),
       completed: form.completed === true,
     };
 
-    if (editingId !== null) {
+    if (editingId) {
       const { error } = await supabase
         .from("deliveries")
         .update(payload)
@@ -267,6 +239,22 @@ export default function Home() {
     fetchDeliveries();
   }
 
+  function resetForm() {
+    setForm({
+      customer_name: "",
+      phone: "",
+      address: "",
+      appliance: "",
+      delivery_date: formatDate(new Date()),
+      install: false,
+      paid: false,
+      driver: "",
+      notes: "",
+      completed: false,
+    });
+    setEditingId(null);
+  }
+
   function handleEdit(order: Delivery) {
     setEditingId(order.id);
     setForm({
@@ -282,9 +270,7 @@ export default function Home() {
       completed: order.completed === true,
     });
 
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function handleDelete(id: number) {
@@ -319,53 +305,43 @@ export default function Home() {
     fetchDeliveries();
   }
 
-  function renderOrderCard(order: Delivery, showDelete = false) {
+  function OrderCard(order: Delivery, showDelete = false) {
     return (
       <div
         key={order.id}
-        className={`mb-3 rounded-2xl border p-4 shadow-sm ${
+        className={`rounded-2xl p-4 shadow border mb-3 ${
           order.completed ? "bg-gray-100 text-gray-500" : "bg-white"
         }`}
       >
-        <div className="text-lg font-bold">{order.customer_name || "-"}</div>
-
-        {order.phone ? <div>{order.phone}</div> : null}
-        {order.address ? <div>{order.address}</div> : null}
-        {order.appliance ? <div>{order.appliance}</div> : null}
-
+        <div className="font-bold text-lg">{order.customer_name}</div>
+        <div>{order.phone}</div>
+        <div>{order.address}</div>
+        <div>{order.appliance}</div>
         <div>
           {t.deliveryDate}: {order.delivery_date}
         </div>
-
         <div>
           {t.deliveryTime}: {order.driver || "-"}
         </div>
-
         <div>
           {t.install}: {order.install ? t.yes : t.no}
         </div>
-
         <div>
           {t.paid}: {order.paid ? t.yes : t.no}
         </div>
+        {order.notes ? <div>{t.notes}: {order.notes}</div> : null}
 
-        {order.notes ? (
-          <div>
-            {t.notes}: {order.notes}
-          </div>
-        ) : null}
-
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mt-3">
           <button
             onClick={() => handleEdit(order)}
-            className="rounded-xl bg-blue-600 px-3 py-2 text-white"
+            className="px-3 py-2 rounded-xl bg-blue-600 text-white"
           >
             {t.edit}
           </button>
 
           <button
             onClick={() => toggleCompleted(order)}
-            className="rounded-xl bg-green-600 px-3 py-2 text-white"
+            className="px-3 py-2 rounded-xl bg-green-600 text-white"
           >
             {order.completed ? t.undoDone : t.markDone}
           </button>
@@ -373,7 +349,7 @@ export default function Home() {
           {showDelete && (
             <button
               onClick={() => handleDelete(order.id)}
-              className="rounded-xl bg-red-600 px-3 py-2 text-white"
+              className="px-3 py-2 rounded-xl bg-red-600 text-white"
             >
               {t.delete}
             </button>
@@ -393,20 +369,15 @@ export default function Home() {
     if (count === 0) return null;
 
     return (
-      <div className="mt-1 text-[10px] font-semibold text-blue-600">
+      <div className="text-[10px] mt-1 font-semibold text-blue-600">
         {count}
       </div>
     );
   };
 
-  const calendarOrdersTitle =
-    selectedDateStr === todayStr
-      ? t.todayOrders
-      : `${selectedDateStr} - ${t.selectedDateOrders}`;
-
   return (
-    <main className="mx-auto min-h-screen max-w-5xl bg-gray-50 p-4">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <main className="min-h-screen bg-gray-50 p-4 max-w-5xl mx-auto">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h1 className="text-2xl font-bold">{t.title}</h1>
 
         <div className="flex items-center gap-2">
@@ -414,7 +385,7 @@ export default function Home() {
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value as Language)}
-            className="rounded-xl border px-3 py-2"
+            className="border rounded-xl px-3 py-2"
           >
             <option value="中文">中文</option>
             <option value="English">English</option>
@@ -423,41 +394,36 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="mb-6 rounded-2xl bg-white p-4 shadow">
-        <h2 className="mb-4 text-xl font-semibold">
-          {editingId !== null ? t.updateOrder : t.addNew}
+      <div className="bg-white rounded-2xl shadow p-4 mb-6">
+        <h2 className="text-xl font-semibold mb-4">
+          {editingId ? t.update : t.addNew}
         </h2>
 
-        <form
-          onSubmit={handleSubmit}
-          className="grid grid-cols-1 gap-3 md:grid-cols-2"
-        >
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <input
-            className="rounded-xl border px-3 py-2"
+            className="border rounded-xl px-3 py-2"
             placeholder={t.customerName}
             value={form.customer_name}
-            onChange={(e) =>
-              setForm({ ...form, customer_name: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
             required
           />
 
           <input
-            className="rounded-xl border px-3 py-2"
+            className="border rounded-xl px-3 py-2"
             placeholder={t.phone}
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
 
           <input
-            className="rounded-xl border px-3 py-2 md:col-span-2"
+            className="border rounded-xl px-3 py-2 md:col-span-2"
             placeholder={t.address}
             value={form.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })}
           />
 
           <input
-            className="rounded-xl border px-3 py-2"
+            className="border rounded-xl px-3 py-2"
             placeholder={t.appliance}
             value={form.appliance}
             onChange={(e) => setForm({ ...form, appliance: e.target.value })}
@@ -465,22 +431,20 @@ export default function Home() {
 
           <input
             type="date"
-            className="rounded-xl border px-3 py-2"
+            className="border rounded-xl px-3 py-2"
             value={form.delivery_date}
-            onChange={(e) =>
-              setForm({ ...form, delivery_date: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, delivery_date: e.target.value })}
           />
 
           <input
-            className="rounded-xl border px-3 py-2"
+            className="border rounded-xl px-3 py-2"
             placeholder={t.deliveryTime}
             value={form.driver}
             onChange={(e) => setForm({ ...form, driver: e.target.value })}
           />
 
           <input
-            className="rounded-xl border px-3 py-2 md:col-span-2"
+            className="border rounded-xl px-3 py-2 md:col-span-2"
             placeholder={t.notes}
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -504,28 +468,28 @@ export default function Home() {
             {t.paid}
           </label>
 
-          <div className="flex gap-2 md:col-span-2">
+          <div className="md:col-span-2 flex gap-2">
             <button
               type="submit"
-              className="rounded-xl bg-black px-4 py-2 text-white"
+              className="px-4 py-2 rounded-xl bg-black text-white"
             >
-              {editingId !== null ? t.update : t.save}
+              {editingId ? t.update : t.save}
             </button>
 
-            {editingId !== null && (
+            {editingId ? (
               <button
                 type="button"
                 onClick={resetForm}
-                className="rounded-xl bg-gray-300 px-4 py-2"
+                className="px-4 py-2 rounded-xl bg-gray-300"
               >
                 {t.cancel}
               </button>
-            )}
+            ) : null}
           </div>
         </form>
       </div>
 
-      <div className="mb-6 rounded-2xl bg-white p-4 shadow">
+      <div className="bg-white rounded-2xl shadow p-4 mb-6">
         <Calendar
           locale={getCalendarLocale(language)}
           value={selectedDate}
@@ -534,23 +498,25 @@ export default function Home() {
         />
 
         <div className="mt-4">
-          <h2 className="mb-3 text-xl font-semibold">{calendarOrdersTitle}</h2>
+          <h2 className="text-xl font-semibold mb-3">
+            {selectedDateStr === todayStr ? t.todayOrders : `${selectedDateStr} Orders`}
+          </h2>
 
           {selectedDayOrders.length === 0 ? (
             <div className="text-gray-500">{t.noOrders}</div>
           ) : (
-            selectedDayOrders.map((order) => renderOrderCard(order, false))
+            selectedDayOrders.map((order) => OrderCard(order, false))
           )}
         </div>
       </div>
 
-      <div className="mb-6 rounded-2xl bg-white p-4 shadow">
-        <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="bg-white rounded-2xl shadow p-4 mb-6">
+        <div className="flex justify-between items-center mb-3">
           <h2 className="text-xl font-semibold">{t.upcomingOrders}</h2>
 
           <button
             onClick={() => setShowAllOrders(!showAllOrders)}
-            className="rounded-xl bg-gray-800 px-3 py-2 text-white"
+            className="px-3 py-2 rounded-xl bg-gray-800 text-white"
           >
             {showAllOrders ? t.hideAllOrders : t.showAllOrders}
           </button>
@@ -559,18 +525,18 @@ export default function Home() {
         {upcomingOrders.length === 0 ? (
           <div className="text-gray-500">{t.noOrders}</div>
         ) : (
-          upcomingOrders.map((order) => renderOrderCard(order, false))
+          upcomingOrders.map((order) => OrderCard(order, false))
         )}
       </div>
 
       {showAllOrders && (
-        <div className="mb-6 rounded-2xl bg-white p-4 shadow">
-          <h2 className="mb-3 text-xl font-semibold">{t.allOrders}</h2>
+        <div className="bg-white rounded-2xl shadow p-4 mb-6">
+          <h2 className="text-xl font-semibold mb-3">{t.allOrders}</h2>
 
           {allOrders.length === 0 ? (
             <div className="text-gray-500">{t.noOrders}</div>
           ) : (
-            allOrders.map((order) => renderOrderCard(order, true))
+            allOrders.map((order) => OrderCard(order, true))
           )}
         </div>
       )}
