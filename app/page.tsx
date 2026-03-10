@@ -55,6 +55,7 @@ const texts = {
     paid: "Paid",
     saveDelivery: "Save Delivery",
     updateDelivery: "Update Delivery",
+    delete: "Delete Order",
     noDeliveries: "No deliveries for this day",
     call: "Call",
     navigate: "Navigate",
@@ -69,6 +70,11 @@ const texts = {
     copied: "Address copied",
     yes: "Yes",
     no: "No",
+    fillRequired: "Please fill required fields",
+    updateFailed: "Update failed",
+    saveFailed: "Save failed",
+    deleteFailed: "Delete failed",
+    confirmDelete: "Are you sure you want to delete this order?",
   },
   zh: {
     appTitle: "家电送货管理",
@@ -89,6 +95,7 @@ const texts = {
     paid: "已付款",
     saveDelivery: "保存送货单",
     updateDelivery: "更新送货单",
+    delete: "删除订单",
     noDeliveries: "这一天没有送货单",
     call: "拨打",
     navigate: "导航",
@@ -103,6 +110,11 @@ const texts = {
     copied: "地址已复制",
     yes: "是",
     no: "否",
+    fillRequired: "请填写必填项",
+    updateFailed: "更新失败",
+    saveFailed: "保存失败",
+    deleteFailed: "删除失败",
+    confirmDelete: "确定要删除这个订单吗？",
   },
   es: {
     appTitle: "Administrador de Entregas",
@@ -123,6 +135,7 @@ const texts = {
     paid: "Pagado",
     saveDelivery: "Guardar Entrega",
     updateDelivery: "Actualizar Entrega",
+    delete: "Eliminar Pedido",
     noDeliveries: "No hay entregas para este día",
     call: "Llamar",
     navigate: "Navegar",
@@ -137,6 +150,11 @@ const texts = {
     copied: "Dirección copiada",
     yes: "Sí",
     no: "No",
+    fillRequired: "Por favor completa los campos obligatorios",
+    updateFailed: "Error al actualizar",
+    saveFailed: "Error al guardar",
+    deleteFailed: "Error al eliminar",
+    confirmDelete: "¿Seguro que quieres eliminar este pedido?",
   },
 };
 
@@ -274,7 +292,7 @@ export default function Home() {
     e.preventDefault();
 
     if (!form.customer_name || !form.phone || !form.address || !form.appliance) {
-      alert("Please fill required fields");
+      alert(t.fillRequired);
       return;
     }
 
@@ -296,7 +314,7 @@ export default function Home() {
 
       if (error) {
         console.error("Update error:", error);
-        alert("Update failed");
+        alert(t.updateFailed);
         return;
       }
     } else {
@@ -323,7 +341,7 @@ export default function Home() {
 
       if (error) {
         console.error("Insert error:", error);
-        alert("Save failed");
+        alert(t.saveFailed);
         return;
       }
     }
@@ -349,6 +367,26 @@ export default function Home() {
       notes: delivery.notes || "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleDelete() {
+    if (!editingId) return;
+
+    const confirmed = window.confirm(t.confirmDelete);
+    if (!confirmed) return;
+
+    const { error } = await supabase.from("deliveries").delete().eq("id", editingId);
+
+    if (error) {
+      console.error("Delete error:", error);
+      alert(t.deleteFailed);
+      return;
+    }
+
+    setEditingId(null);
+    setShowForm(false);
+    setForm(emptyForm(selectedDateString));
+    await fetchDeliveries();
   }
 
   async function toggleCompleted(delivery: Delivery) {
@@ -590,9 +628,25 @@ export default function Home() {
               {t.paid}
             </label>
 
-            <button type="submit" style={primaryButtonStyle}>
-              {editingId ? t.updateDelivery : t.saveDelivery}
-            </button>
+            <div style={{ display: "grid", gap: 10 }}>
+              <button type="submit" style={primaryButtonStyle}>
+                {editingId ? t.updateDelivery : t.saveDelivery}
+              </button>
+
+              {editingId ? (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  style={{
+                    ...secondaryButtonStyle,
+                    border: "1px solid #ef4444",
+                    color: "#b91c1c",
+                  }}
+                >
+                  {t.delete}
+                </button>
+              ) : null}
+            </div>
           </form>
         </div>
       )}
